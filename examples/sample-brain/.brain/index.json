@@ -1,0 +1,67 @@
+{
+  "version": "0.1.0",
+  "updated": "2026-03-16T15:30:00Z",
+  "thought_count": 5,
+  "thoughts": {
+    "a1b2c3d4-1111-4000-a000-000000000001": {
+      "path": "thoughts/user/profile.md",
+      "title": "User Profile",
+      "type": "user",
+      "tags": ["identity"],
+      "confidence": 1.0,
+      "ttl": "permanent",
+      "source": "human",
+      "created": "2026-03-16T10:00:00Z",
+      "modified": "2026-03-16T10:00:00Z",
+      "links": []
+    },
+    "a1b2c3d4-2222-4000-a000-000000000002": {
+      "path": "thoughts/decisions/use-typescript.md",
+      "title": "Always Use TypeScript",
+      "type": "decision",
+      "tags": ["language", "frontend", "backend"],
+      "confidence": 1.0,
+      "ttl": "permanent",
+      "source": "human",
+      "created": "2026-03-16T10:15:00Z",
+      "modified": "2026-03-16T10:15:00Z",
+      "links": []
+    },
+    "a1b2c3d4-3333-4000-a000-000000000003": {
+      "path": "thoughts/learnings/no-mocks-in-integration-tests.md",
+      "title": "No Mocks In Integration Tests",
+      "type": "learning",
+      "tags": ["testing", "backend", "databases"],
+      "confidence": 1.0,
+      "ttl": "permanent",
+      "source": "human",
+      "created": "2026-03-16T11:00:00Z",
+      "modified": "2026-03-16T14:22:00Z",
+      "links": ["a1b2c3d4-2222-4000-a000-000000000002"]
+    },
+    "a1b2c3d4-4444-4000-a000-000000000004": {
+      "path": "thoughts/references/linear-project.md",
+      "title": "Bug Tracker — Linear INGEST Project",
+      "type": "reference",
+      "tags": ["tooling", "bugs", "pipeline"],
+      "confidence": 1.0,
+      "ttl": "permanent",
+      "source": "human",
+      "created": "2026-03-16T12:00:00Z",
+      "modified": "2026-03-16T12:00:00Z",
+      "links": []
+    },
+    "a1b2c3d4-5555-4000-a000-000000000005": {
+      "path": "thoughts/context/active.md",
+      "title": "Current Focus",
+      "type": "context",
+      "tags": ["session"],
+      "confidence": 0.9,
+      "ttl": "session",
+      "source": "agent",
+      "created": "2026-03-16T15:00:00Z",
+      "modified": "2026-03-16T15:30:00Z",
+      "links": ["a1b2c3d4-3333-4000-a000-000000000003"]
+    }
+  }
+}

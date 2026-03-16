@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0",
+  "name": "Sample Brain",
+  "description": "An example Brain demonstrating the Brain.md spec. This Brain belongs to a fictional developer named Alex who uses AI agents for full-stack web development.",
+  "created": "2026-03-16T10:00:00Z",
+  "settings": {
+    "default_ttl": "permanent",
+    "default_confidence": 1.0,
+    "auto_index": true,
+    "thought_directories": [
+      "thoughts/user",
+      "thoughts/context",
+      "thoughts/decisions",
+      "thoughts/learnings",
+      "thoughts/references",
+      "thoughts/projects"
+    ]
+  }
+}
