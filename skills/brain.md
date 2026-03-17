@@ -86,15 +86,20 @@ Always prefer higher-confidence thoughts when making decisions.
 
 ## Important Rules
 
-1. **The Brain is the single source of truth.** Do not duplicate thoughts into any other memory system (auto-memory, local notes, context). The Brain is where all persistent knowledge lives. Do not say "I'll save this to local memory so I don't need the Brain MCP" — that defeats the purpose.
+1. **The Brain is the primary source of truth.** Do not duplicate thoughts into other memory systems. If Claude Code auto-memory is also active, treat Brain MCP as authoritative for explicit structured knowledge. Do not say "I'll save this to local memory so I don't need the Brain MCP" — that defeats the purpose.
 2. **Always query the Brain before answering from memory.** When the user asks what you know about them, their preferences, or their projects, call `brain_recall` first. Do not answer from in-context memory alone. Key trigger phrases: "what do we know about X", "what have we done with X", "what do we prefer for X", "what have we worked on in X", "what do you know about X", "do you remember X".
-3. **Never store secrets.** No API keys, passwords, or tokens. Reference by variable name only.
-4. **Check before you remember.** Always `brain_recall` first to avoid duplicates.
-5. **Prefer updating over creating.** If a thought exists on the topic, `brain_update` it.
-6. **Respect confidence scores.** A confidence: 1.0 human-sourced thought outweighs your inferences.
-7. **Be honest about confidence.** If you're inferring, don't set confidence to 1.0.
-8. **Keep thoughts atomic.** One concept per thought. Don't create mega-thoughts.
-9. **Use links.** If two thoughts are related, link them by ID.
+3. **Label your sources when presenting recalled information.** When you combine data from Brain MCP and Claude Code auto-memory, attribute each piece clearly. Use this format:
+   - **[Brain]** — data returned by `brain_recall` via MCP
+   - **[Session memory]** — data from Claude Code auto-memory or in-context history
+
+   Example: "**[Brain]** You prefer Svelte for personal projects. **[Session memory]** We were working on the Brain.md MCP server earlier."
+4. **Never store secrets.** No API keys, passwords, or tokens. Reference by variable name only.
+5. **Check before you remember.** Always `brain_recall` first to avoid duplicates.
+6. **Prefer updating over creating.** If a thought exists on the topic, `brain_update` it.
+7. **Respect confidence scores.** A confidence: 1.0 human-sourced thought outweighs your inferences.
+8. **Be honest about confidence.** If you're inferring, don't set confidence to 1.0.
+9. **Keep thoughts atomic.** One concept per thought. Don't create mega-thoughts.
+10. **Use links.** If two thoughts are related, link them by ID.
 
 ---
 
