@@ -72,10 +72,20 @@ server.tool(
       ),
     title: z.string().describe("Short descriptive title for the thought"),
     content: z.string().describe("The thought content in markdown"),
+    summary: z
+      .string()
+      .optional()
+      .describe("One-line plain-text summary for index search and previews"),
+    project: z
+      .string()
+      .optional()
+      .describe(
+        "Project path for scoping (e.g., 'Game Development/My RPG'). Omit for global thoughts."
+      ),
     tags: z
       .array(z.string())
       .optional()
-      .describe("Tags for categorization and filtering"),
+      .describe("Tags for cross-project queries (e.g., ['c#', 'unity', 'combat'])"),
     confidence: z
       .number()
       .min(0)
@@ -106,6 +116,8 @@ server.tool(
     type,
     title,
     content,
+    summary,
+    project,
     tags,
     confidence,
     ttl,
@@ -119,6 +131,8 @@ server.tool(
       type: type as ThoughtType,
       title,
       content,
+      summary,
+      project,
       tags,
       confidence,
       ttl: ttl as TTL | undefined,
@@ -160,7 +174,13 @@ server.tool(
     keyword: z
       .string()
       .optional()
-      .describe("Search keyword (searches title and content)"),
+      .describe("Search keyword (searches title, summary, tags, and content). Use for cross-project queries like 'C#' or 'networking'."),
+    project: z
+      .string()
+      .optional()
+      .describe(
+        "Filter by project path (supports partial match — 'Game Development' matches all game projects)"
+      ),
     confidence_min: z
       .number()
       .min(0)
@@ -173,12 +193,13 @@ server.tool(
       .describe("Maximum number of thoughts to return"),
     brain_path: z.string().optional().describe("Path to the Brain"),
   },
-  async ({ type, tags, keyword, confidence_min, limit, brain_path }) => {
+  async ({ type, tags, keyword, project, confidence_min, limit, brain_path }) => {
     const brain = resolveBrain(brain_path);
     const results = brain.recall({
       type: type as ThoughtType | undefined,
       tags,
       keyword,
+      project,
       confidence_min,
       limit,
     });

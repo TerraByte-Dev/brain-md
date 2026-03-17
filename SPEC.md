@@ -26,7 +26,7 @@ The spec is designed to be:
 
 ## 3. Directory Structure
 
-A Brain is created by adding a `.brain/` directory to any folder:
+A Brain is created by adding a `.brain/` directory to any folder. A Brain is designed to be a **single, comprehensive knowledge base** for a developer — not one Brain per project, but one Brain that contains all projects, organized hierarchically.
 
 ```
 my-brain/
@@ -38,16 +38,34 @@ my-brain/
 │
 ├── BRAIN.md                       # Brain entry point (REQUIRED)
 │
-├── thoughts/                      # Thought storage (REQUIRED)
+├── thoughts/                      # Global thoughts (REQUIRED)
 │   ├── user/                      # Who the human is
 │   ├── context/                   # Current working state
-│   ├── decisions/                 # Architectural decisions, preferences
-│   ├── learnings/                 # Corrections, feedback, patterns learned
-│   ├── references/                # Pointers to external resources
-│   └── projects/                  # Project-specific knowledge
+│   ├── decisions/                 # Cross-project decisions and preferences
+│   ├── learnings/                 # Cross-project learnings
+│   └── references/                # Cross-project references
 │
-└── custom/                        # User-defined thought categories (OPTIONAL)
+└── projects/                      # Project-scoped thoughts (OPTIONAL)
+    ├── Game Development/
+    │   └── My RPG/
+    │       ├── combat-system.md       # [c#, unity, combat, game-mechanics]
+    │       ├── photon-networking.md   # [c#, networking, multiplayer]
+    │       └── shader-water.md        # [hlsl, shaders, visual-effects]
+    ├── Web Development/
+    │   ├── Brain.md/
+    │   │   ├── mcp-server-design.md   # [typescript, mcp, architecture]
+    │   │   └── tauri-app-setup.md     # [rust, svelte, desktop-app]
+    │   └── Stream Tools/
+    │       └── highlight-detector.md  # [python, audio, whisper, ffmpeg]
+    └── DevOps/
+        └── azure-iam-lab.md           # [azure, iam, identity, cloud]
 ```
+
+This structure enables:
+- **Project-scoped queries:** "Show me everything about My RPG"
+- **Domain queries:** "Show me all Game Development thoughts"
+- **Cross-project queries:** "What is everything I've done with C#?" (searches tags across all projects)
+- **Global knowledge:** User profile, cross-project decisions, and preferences live in `thoughts/`
 
 ### 3.1 Required Elements
 
@@ -88,9 +106,11 @@ title: string            # REQUIRED — Human-readable title
 created: string          # REQUIRED — ISO 8601 datetime (UTC)
 modified: string         # REQUIRED — ISO 8601 datetime (UTC)
 source: string           # REQUIRED — One of: agent, human, both
+summary: string          # OPTIONAL — One-line description for index and search
 confidence: number       # OPTIONAL — 0.0 to 1.0, default 1.0
 ttl: string              # OPTIONAL — One of: permanent, session, 7d, 30d, 90d. Default: permanent
-tags: string[]           # OPTIONAL — Freeform tags for categorization
+project: string          # OPTIONAL — Project path (e.g., "Game Development/My RPG")
+tags: string[]           # OPTIONAL — Freeform tags for categorization and cross-project queries
 links: string[]          # OPTIONAL — IDs of related thoughts
 sensitive: boolean       # OPTIONAL — If true, contains sensitive data. Default: false
 custom_type: string      # OPTIONAL — Required when type is "custom"
@@ -111,6 +131,12 @@ custom_type: string      # OPTIONAL — Required when type is "custom"
 - `custom` — User-defined type (must also set `custom_type`)
 
 **title** — A short, descriptive title. Used in the index and Neural View.
+
+**summary** — A one-line plain-text description of the thought's content. Used for:
+- Index-level search (without reading the full file)
+- Neural View hover previews
+- Semantic embedding input (Tier 3 retrieval)
+- Example: `"Integration tests must use real databases, not mocks"`
 
 **created** — When the thought was first created. ISO 8601 format, UTC timezone.
 
@@ -139,7 +165,14 @@ Agents SHOULD prefer higher-confidence thoughts when making decisions.
 
 Implementations SHOULD surface expiring thoughts for human review before deletion.
 
-**tags** — An array of freeform strings for categorization. Tags enable filtering and clustering in the index and Neural View.
+**project** — A path string that scopes this thought to a specific domain and project. Uses forward-slash hierarchy:
+- `"Game Development/My RPG"` — A thought belonging to the RPG project under Game Development
+- `"Web Development/Brain.md"` — A thought about Brain.md itself
+- Omit for global thoughts (user profile, cross-project decisions)
+- Enables project-scoped queries ("show me everything about My RPG") and domain queries ("show me all Game Development thoughts")
+- Also determines where the thought file is stored on disk when using hierarchical Brain layout
+
+**tags** — An array of freeform strings for categorization. Tags enable cross-project queries and clustering in Neural View. Tags should describe WHAT the thought is about, not WHERE it lives (that's what `project` is for). Examples: `[c#, unity, combat, game-mechanics]`, `[typescript, mcp, architecture]`.
 
 **links** — An array of thought IDs that this thought relates to. Used for graph construction in Neural View and for contextual recall.
 

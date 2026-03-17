@@ -20,7 +20,9 @@ export type Source = "agent" | "human" | "both";
 export interface ThoughtMeta {
   path: string;
   title: string;
+  summary: string;
   type: ThoughtType;
+  project?: string;
   tags: string[];
   confidence: number;
   ttl: TTL;
@@ -54,10 +56,12 @@ export interface ThoughtFrontmatter {
   id: string;
   type: ThoughtType;
   title: string;
+  summary?: string;
   created: string;
   modified: string;
   source: Source;
   confidence: number;
+  project?: string;
   ttl: TTL;
   tags: string[];
   links: string[];
@@ -266,6 +270,8 @@ _(Thoughts will appear here as the Brain grows.)_
     type: ThoughtType;
     title: string;
     content: string;
+    summary?: string;
+    project?: string;
     tags?: string[];
     confidence?: number;
     ttl?: TTL;
@@ -280,8 +286,16 @@ _(Thoughts will appear here as the Brain grows.)_
 
     const id = uuidv4();
     const slug = slugify(params.title);
-    const dir = typeToDir(params.type);
-    const relPath = `${dir}/${slug}.md`;
+
+    // If project is specified, store under projects/{project}/
+    // Otherwise use the default type-based directory
+    let relPath: string;
+    if (params.project) {
+      relPath = `projects/${params.project}/${slug}.md`;
+    } else {
+      const dir = typeToDir(params.type);
+      relPath = `${dir}/${slug}.md`;
+    }
     const absPath = path.join(this.brainPath, relPath);
 
     // Ensure directory exists
@@ -291,10 +305,12 @@ _(Thoughts will appear here as the Brain grows.)_
       id,
       type: params.type,
       title: params.title,
+      summary: params.summary,
       created: now(),
       modified: now(),
       source: params.source || "agent",
       confidence: params.confidence ?? config.settings.default_confidence,
+      project: params.project,
       ttl: params.ttl || config.settings.default_ttl,
       tags: params.tags || [],
       links: params.links || [],
@@ -308,7 +324,9 @@ _(Thoughts will appear here as the Brain grows.)_
     index.thoughts[id] = {
       path: relPath,
       title: params.title,
+      summary: params.summary || "",
       type: params.type,
+      project: params.project,
       tags: fm.tags,
       confidence: fm.confidence,
       ttl: fm.ttl,
@@ -329,6 +347,7 @@ _(Thoughts will appear here as the Brain grows.)_
     tags?: string[];
     keyword?: string;
     confidence_min?: number;
+    project?: string;
     limit?: number;
   }): Array<{ id: string; meta: ThoughtMeta; content: string }> {
     const index = this.readIndex();
@@ -337,6 +356,14 @@ _(Thoughts will appear here as the Brain grows.)_
     // Filter by type
     if (params?.type) {
       entries = entries.filter(([, m]) => m.type === params.type);
+    }
+
+    // Filter by project (supports partial match — "Game Development" matches "Game Development/My RPG")
+    if (params?.project) {
+      const proj = params.project.toLowerCase();
+      entries = entries.filter(
+        ([, m]) => m.project && m.project.toLowerCase().startsWith(proj)
+      );
     }
 
     // Filter by tags (match any)
@@ -374,13 +401,15 @@ _(Thoughts will appear here as the Brain grows.)_
       return { id, meta, content };
     });
 
-    // Keyword filter (on full content)
+    // Keyword filter (on title, summary, tags, and full content)
     if (params?.keyword) {
       const kw = params.keyword.toLowerCase();
       return results.filter(
         (r) =>
           r.content.toLowerCase().includes(kw) ||
-          r.meta.title.toLowerCase().includes(kw)
+          r.meta.title.toLowerCase().includes(kw) ||
+          r.meta.summary.toLowerCase().includes(kw) ||
+          r.meta.tags.some((t) => t.toLowerCase().includes(kw))
       );
     }
 
