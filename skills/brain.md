@@ -87,7 +87,7 @@ Always prefer higher-confidence thoughts when making decisions.
 ## Important Rules
 
 1. **The Brain is the single source of truth.** Do not duplicate thoughts into any other memory system (auto-memory, local notes, context). The Brain is where all persistent knowledge lives. Do not say "I'll save this to local memory so I don't need the Brain MCP" — that defeats the purpose.
-2. **Always query the Brain before answering from memory.** When the user asks what you know about them, their preferences, or their projects, call `brain_recall` first. Do not answer from in-context memory alone.
+2. **Always query the Brain before answering from memory.** When the user asks what you know about them, their preferences, or their projects, call `brain_recall` first. Do not answer from in-context memory alone. Key trigger phrases: "what do we know about X", "what have we done with X", "what do we prefer for X", "what have we worked on in X", "what do you know about X", "do you remember X".
 3. **Never store secrets.** No API keys, passwords, or tokens. Reference by variable name only.
 4. **Check before you remember.** Always `brain_recall` first to avoid duplicates.
 5. **Prefer updating over creating.** If a thought exists on the topic, `brain_update` it.
