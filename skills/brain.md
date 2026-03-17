@@ -87,7 +87,7 @@ Always prefer higher-confidence thoughts when making decisions.
 ## Important Rules
 
 1. **The Brain is the primary source of truth.** Do not duplicate thoughts into other memory systems. If Claude Code auto-memory is also active, treat Brain MCP as authoritative for explicit structured knowledge. Do not say "I'll save this to local memory so I don't need the Brain MCP" — that defeats the purpose.
-2. **Always query the Brain before answering from memory.** When the user asks what you know about them, their preferences, or their projects, call `brain_recall` first. Do not answer from in-context memory alone. Key trigger phrases: "what do we know about X", "what have we done with X", "what do we prefer for X", "what have we worked on in X", "what do you know about X", "do you remember X".
+2. **Always call `brain_recall` before answering questions about the user.** This is mandatory — not optional. Even if you already have context from auto-memory or prior conversation, you MUST call `brain_recall` first. Auto-memory is a cache; the Brain is the source. Never skip the MCP call. Trigger phrases: "what do we know about X", "what have we done with X", "what do we prefer for X", "what have we worked on in X", "what do you know about X", "what do I prefer for X", "what have I told you about X", "do you remember X", or any question about past context, preferences, or projects.
 3. **Label your sources when presenting recalled information.** When you combine data from Brain MCP and Claude Code auto-memory, attribute each piece clearly. Use this format:
    - **[Brain]** — data returned by `brain_recall` via MCP
    - **[Session memory]** — data from Claude Code auto-memory or in-context history
