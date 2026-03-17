@@ -5,13 +5,15 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { Brain } from "./brain.js";
 import type { ThoughtType, TTL, Source } from "./brain.js";
+import { WebSocketServer } from "ws";
 
 const server = new McpServer({
   name: "brain-md",
-  version: "0.1.0",
+  version: "0.2.0",
 });
 
-// --- Resolve Brain ---
+// --- Brain instance cache (one per path) ---
+const brainCache = new Map<string, Brain>();
 
 function resolveBrain(brainPath?: string): Brain {
   const resolved =
@@ -21,10 +23,46 @@ function resolveBrain(brainPath?: string): Brain {
       "No Brain found. Use brain_init to create one, or set BRAIN_PATH environment variable."
     );
   }
-  return new Brain(resolved);
+  if (!brainCache.has(resolved)) {
+    const brain = new Brain(resolved);
+    brainCache.set(resolved, brain);
+
+    // Set up WebSocket event forwarding for this brain
+    setupEventForwarding(brain);
+  }
+  return brainCache.get(resolved)!;
 }
 
-// --- Tools ---
+// --- WebSocket for Skull live events ---
+
+let wss: WebSocketServer | null = null;
+
+function setupEventForwarding(brain: Brain): void {
+  const events = [
+    "thought.created",
+    "thought.recalled",
+    "thought.updated",
+    "thought.forgotten",
+  ];
+
+  for (const event of events) {
+    brain.events.on(event, (data: unknown) => {
+      broadcast({ action: event, ...data as object, timestamp: new Date().toISOString() });
+    });
+  }
+}
+
+function broadcast(message: object): void {
+  if (!wss) return;
+  const json = JSON.stringify(message);
+  for (const client of wss.clients) {
+    if (client.readyState === 1) { // WebSocket.OPEN
+      client.send(json);
+    }
+  }
+}
+
+// --- Tools (interface unchanged from v0.1.0) ---
 
 server.tool(
   "brain_init",
@@ -35,9 +73,7 @@ server.tool(
     path: z
       .string()
       .optional()
-      .describe(
-        "Directory to create the Brain in. Defaults to current working directory."
-      ),
+      .describe("Directory to create the Brain in. Defaults to current working directory."),
   },
   async ({ name, description, path: brainPath }) => {
     const targetPath = brainPath || process.env.BRAIN_CWD || process.cwd();
@@ -46,7 +82,7 @@ server.tool(
       content: [
         {
           type: "text" as const,
-          text: `Brain "${name}" initialized at ${targetPath}\n\nCreated:\n- .brain/config.json\n- .brain/index.json\n- BRAIN.md\n- thoughts/ (user, context, decisions, learnings, references, projects)`,
+          text: `Brain "${name}" initialized at ${targetPath}\n\nCreated:\n- .brain/config.json\n- .brain/brain.db (SQLite)\n- BRAIN.md\n- thoughts/ (user, context, decisions, learnings, references, projects)`,
         },
       ],
     };
@@ -58,74 +94,21 @@ server.tool(
   "Save a new thought (memory) to the Brain. The thought is stored as a markdown file with structured frontmatter and added to the index.",
   {
     type: z
-      .enum([
-        "user",
-        "context",
-        "decision",
-        "learning",
-        "reference",
-        "project",
-        "custom",
-      ])
-      .describe(
-        "Type of thought: user (about the human), context (working state), decision (preference/choice), learning (correction/feedback), reference (external resource), project (ongoing work)"
-      ),
+      .enum(["user", "context", "decision", "learning", "reference", "project", "custom"])
+      .describe("Type of thought: user (about the human), context (working state), decision (preference/choice), learning (correction/feedback), reference (external resource), project (ongoing work)"),
     title: z.string().describe("Short descriptive title for the thought"),
     content: z.string().describe("The thought content in markdown"),
-    summary: z
-      .string()
-      .optional()
-      .describe("One-line plain-text summary for index search and previews"),
-    project: z
-      .string()
-      .optional()
-      .describe(
-        "Project path for scoping (e.g., 'Game Development/My RPG'). Omit for global thoughts."
-      ),
-    tags: z
-      .array(z.string())
-      .optional()
-      .describe("Tags for cross-project queries (e.g., ['c#', 'unity', 'combat'])"),
-    confidence: z
-      .number()
-      .min(0)
-      .max(1)
-      .optional()
-      .describe(
-        "How confident you are in this thought (0.0-1.0). Default 1.0. Use 1.0 for human-stated facts, lower for inferences."
-      ),
-    ttl: z
-      .enum(["permanent", "session", "7d", "30d", "90d"])
-      .optional()
-      .describe("Time-to-live. Default: permanent."),
-    source: z
-      .enum(["agent", "human", "both"])
-      .optional()
-      .describe("Who created this thought. Default: agent."),
-    links: z
-      .array(z.string())
-      .optional()
-      .describe("IDs of related thoughts to link to"),
-    sensitive: z
-      .boolean()
-      .optional()
-      .describe("Flag if this contains sensitive information"),
+    summary: z.string().optional().describe("One-line plain-text summary for index search and previews"),
+    project: z.string().optional().describe("Project path for scoping (e.g., 'Game Development/My RPG'). Omit for global thoughts."),
+    tags: z.array(z.string()).optional().describe("Tags for cross-project queries (e.g., ['c#', 'unity', 'combat'])"),
+    confidence: z.number().min(0).max(1).optional().describe("How confident you are in this thought (0.0-1.0). Default 1.0. Use 1.0 for human-stated facts, lower for inferences."),
+    ttl: z.enum(["permanent", "session", "7d", "30d", "90d"]).optional().describe("Time-to-live. Default: permanent."),
+    source: z.enum(["agent", "human", "both"]).optional().describe("Who created this thought. Default: agent."),
+    links: z.array(z.string()).optional().describe("IDs of related thoughts to link to"),
+    sensitive: z.boolean().optional().describe("Flag if this contains sensitive information"),
     brain_path: z.string().optional().describe("Path to the Brain"),
   },
-  async ({
-    type,
-    title,
-    content,
-    summary,
-    project,
-    tags,
-    confidence,
-    ttl,
-    source,
-    links,
-    sensitive,
-    brain_path,
-  }) => {
+  async ({ type, title, content, summary, project, tags, confidence, ttl, source, links, sensitive, brain_path }) => {
     const brain = resolveBrain(brain_path);
     const result = brain.remember({
       type: type as ThoughtType,
@@ -155,42 +138,12 @@ server.tool(
   "brain_recall",
   "Query thoughts from the Brain. Returns matching thoughts with their full content. Use this to load context at session start and before making decisions.",
   {
-    type: z
-      .enum([
-        "user",
-        "context",
-        "decision",
-        "learning",
-        "reference",
-        "project",
-        "custom",
-      ])
-      .optional()
-      .describe("Filter by thought type"),
-    tags: z
-      .array(z.string())
-      .optional()
-      .describe("Filter by tags (matches any)"),
-    keyword: z
-      .string()
-      .optional()
-      .describe("Search keyword (searches title, summary, tags, and content). Use for cross-project queries like 'C#' or 'networking'."),
-    project: z
-      .string()
-      .optional()
-      .describe(
-        "Filter by project path (supports partial match — 'Game Development' matches all game projects)"
-      ),
-    confidence_min: z
-      .number()
-      .min(0)
-      .max(1)
-      .optional()
-      .describe("Minimum confidence threshold"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of thoughts to return"),
+    type: z.enum(["user", "context", "decision", "learning", "reference", "project", "custom"]).optional().describe("Filter by thought type"),
+    tags: z.array(z.string()).optional().describe("Filter by tags (matches any)"),
+    keyword: z.string().optional().describe("Search keyword (searches title, summary, tags, and content). Use for cross-project queries like 'C#' or 'networking'."),
+    project: z.string().optional().describe("Filter by project path (supports partial match — 'Game Development' matches all game projects)"),
+    confidence_min: z.number().min(0).max(1).optional().describe("Minimum confidence threshold"),
+    limit: z.number().optional().describe("Maximum number of thoughts to return"),
     brain_path: z.string().optional().describe("Path to the Brain"),
   },
   async ({ type, tags, keyword, project, confidence_min, limit, brain_path }) => {
@@ -206,12 +159,7 @@ server.tool(
 
     if (results.length === 0) {
       return {
-        content: [
-          {
-            type: "text" as const,
-            text: "No thoughts found matching the query.",
-          },
-        ],
+        content: [{ type: "text" as const, text: "No thoughts found matching the query." }],
       };
     }
 
@@ -223,12 +171,7 @@ server.tool(
       .join("\n\n");
 
     return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Found ${results.length} thought(s):\n\n${text}`,
-        },
-      ],
+      content: [{ type: "text" as const, text: `Found ${results.length} thought(s):\n\n${text}` }],
     };
   }
 );
@@ -241,20 +184,9 @@ server.tool(
     content: z.string().optional().describe("New content (replaces body)"),
     title: z.string().optional().describe("New title"),
     tags: z.array(z.string()).optional().describe("New tags (replaces all)"),
-    confidence: z
-      .number()
-      .min(0)
-      .max(1)
-      .optional()
-      .describe("Updated confidence score"),
-    ttl: z
-      .enum(["permanent", "session", "7d", "30d", "90d"])
-      .optional()
-      .describe("Updated TTL"),
-    links: z
-      .array(z.string())
-      .optional()
-      .describe("Updated links (replaces all)"),
+    confidence: z.number().min(0).max(1).optional().describe("Updated confidence score"),
+    ttl: z.enum(["permanent", "session", "7d", "30d", "90d"]).optional().describe("Updated TTL"),
+    links: z.array(z.string()).optional().describe("Updated links (replaces all)"),
     brain_path: z.string().optional().describe("Path to the Brain"),
   },
   async ({ id, content, title, tags, confidence, ttl, links, brain_path }) => {
@@ -268,12 +200,7 @@ server.tool(
       links,
     });
     return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Updated thought: ${result.id}\nPath: ${result.path}`,
-        },
-      ],
+      content: [{ type: "text" as const, text: `Updated thought: ${result.id}\nPath: ${result.path}` }],
     };
   }
 );
@@ -289,12 +216,7 @@ server.tool(
     const brain = resolveBrain(brain_path);
     const result = brain.forget(id);
     return {
-      content: [
-        {
-          type: "text" as const,
-          text: `Forgot thought: ${result.id}\nDeleted: ${result.path}`,
-        },
-      ],
+      content: [{ type: "text" as const, text: `Forgot thought: ${result.id}\nDeleted: ${result.path}` }],
     };
   }
 );
@@ -303,12 +225,7 @@ server.tool(
   "brain_reflect",
   "Review the Brain for quality issues: expired thoughts, low confidence, orphaned memories, and contradictions. Returns a report for human review.",
   {
-    scope: z
-      .string()
-      .optional()
-      .describe(
-        "Scope of reflection: 'all' (default), a thought type, or a tag"
-      ),
+    scope: z.string().optional().describe("Scope of reflection: 'all' (default), a thought type, or a tag"),
     brain_path: z.string().optional().describe("Path to the Brain"),
   },
   async ({ scope, brain_path }) => {
@@ -343,11 +260,7 @@ server.tool(
       text += "\n";
     }
 
-    if (
-      report.expired.length === 0 &&
-      report.low_confidence.length === 0 &&
-      report.orphaned.length === 0
-    ) {
+    if (report.expired.length === 0 && report.low_confidence.length === 0 && report.orphaned.length === 0) {
       text += "No issues found. Brain is healthy.\n";
     }
 
@@ -389,6 +302,17 @@ server.tool(
 // --- Start Server ---
 
 async function main() {
+  // Start WebSocket server for Skull on port 6677
+  try {
+    wss = new WebSocketServer({ port: 6677 });
+    wss.on("error", () => {
+      // Port in use — Skull WebSocket won't work but MCP still runs
+      wss = null;
+    });
+  } catch {
+    wss = null;
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
