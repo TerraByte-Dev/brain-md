@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* JARVIS Theme */
+@theme {
+  --color-skull-bg: #0A0A0F;
+  --color-skull-surface: #12121A;
+  --color-skull-surface-hover: #1A1A26;
+  --color-skull-border: #1E1E2E;
+  --color-skull-text: #E2E2E8;
+  --color-skull-text-dim: #8888A0;
+  --color-skull-accent: #3B82F6;
+  --color-skull-accent-dim: #2563EB;
+  --color-skull-green: #10B981;
+  --color-skull-yellow: #F59E0B;
+  --color-skull-red: #EF4444;
+  --color-skull-purple: #8B5CF6;
+  --color-skull-cyan: #06B6D4;
+
+  /* Type colors */
+  --color-type-user: #3B82F6;
+  --color-type-context: #F59E0B;
+  --color-type-decision: #8B5CF6;
+  --color-type-learning: #10B981;
+  --color-type-reference: #06B6D4;
+  --color-type-project: #EF4444;
+
+  --font-mono: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+}
+
+/* Base styles */
+html, body {
+  background: var(--color-skull-bg);
+  color: var(--color-skull-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-skull-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-skull-text-dim);
+}
+
+/* Markdown content */
+.thought-content {
+  user-select: text;
+}
+.thought-content h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+.thought-content h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--color-skull-text-dim); }
+.thought-content p { margin-bottom: 0.5rem; line-height: 1.6; }
+.thought-content code {
+  font-family: var(--font-mono);
+  background: var(--color-skull-surface);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.thought-content pre {
+  background: var(--color-skull-surface);
+  padding: 0.75rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 0.5rem;
+}
+.thought-content strong { color: var(--color-skull-accent); }
+.thought-content ul, .thought-content ol { padding-left: 1.5rem; margin-bottom: 0.5rem; }
+.thought-content li { margin-bottom: 0.25rem; }
